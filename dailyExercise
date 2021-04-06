@@ -20,3 +20,74 @@ int solution(int X, int Y, int D) {
     }
     return result; 
 }
+
+2021-04-06
+An array A consisting of N different integers is given. The array contains integers in the range [1..(N + 1)], which means that exactly one element is missing.
+
+Your goal is to find that missing element.
+
+Write a function:
+
+int solution(int A[], int N);
+
+that, given an array A, returns the value of the missing element.
+
+For example, given array A such that:
+
+  A[0] = 2
+  A[1] = 3
+  A[2] = 1
+  A[3] = 5
+the function should return 4, as it is the missing element.
+
+Write an efficient algorithm for the following assumptions:
+
+N is an integer within the range [0..100,000];
+the elements of A are all distinct;
+each element of array A is an integer within the range [1..(N + 1)].
+
+// you can write to stdout for debugging purposes, e.g.
+// printf("this is a debug message\n");
+#include <stdlib.h>
+int compare(const void * aLval, const void * aRval)
+{
+    int sLval = *(int*) aLval;
+    int sRval = *(int*) aRval;
+    if ( sLval < sRval )
+    {
+        return -1;
+    }
+    else if ( sLval > sRval )
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+int solution(int A[], int N) {
+    // write your code in C99 (gcc 6.2.0)
+    int sPrevValue = 0;
+    int sCurValue = 0;
+    int sResult = 1;
+    if ( N == 0 )
+    {
+        sResult = 1;
+    }
+    else
+    {
+        qsort(A, N, sizeof(int), compare);
+        for(int i = 0; i < N; i++)
+        {
+            sCurValue = A[i];
+            if ( sCurValue != (sPrevValue + 1))
+            {
+                break;
+            }
+            sPrevValue = sCurValue;
+        }
+        sResult = sPrevValue + 1;
+    }
+    return sResult;
+}
