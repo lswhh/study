@@ -20,8 +20,6 @@ def dijkstra(distance, graph, c):
                 if distance[targetCity] > cost:
                     distance[targetCity] = cost
                     heapq.heappush(priqueue, (cost, targetCity))
-
-
     return
 # 노드개수: n, 통로 개수:m, 출발노드: c, 통로 연결 정보: pathList
 # index of distance: 노드 번호
