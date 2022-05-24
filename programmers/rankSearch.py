@@ -81,9 +81,11 @@ def countDic(dataDic, query):
     queryList = getQueryExtendList(query)
     for queryi in queryList:
         scoreList = dataDic[queryi[lanIdx]][queryi[posIdx]][queryi[hisIdx]][queryi[soulIdx]]
-        for score in scoreList:
-            if int(score) >= int(queryi[scoreIdx]):
-                count += 1
+        idx = bisect_left(scoreList, queryi[scoreIdx])
+        count += len(scoreList[idx:])
+        # for score in scoreList:
+        #     if int(score) >= int(queryi[scoreIdx]):
+        #         count += 1
     return count
 def solution(info, query):
     dataList = []
@@ -102,6 +104,11 @@ def solution(info, query):
         dataList.append((language, position, history, soulfood, int(score)))
         dataDic[language][position][history][soulfood].append(int(score))
 
+    for lang in langKind:
+        for pos in posKind:
+            for hist in histKind:
+                for soulfd in soulfoodKind:
+                    dataDic[lang][pos][hist][soulfd].sort()
     queryList = []
     for i in query:
         language, delimter1, position, delimter2, history, delimter3, soulfood, score = i.split()
