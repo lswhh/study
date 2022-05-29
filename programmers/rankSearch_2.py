@@ -1,6 +1,8 @@
 # https://programmers.co.kr/learn/courses/30/lessons/72412
 
 from bisect import bisect_left
+from collections import defaultdict
+
 
 lanIdx = 0
 posIdx = 1
@@ -54,49 +56,49 @@ def getQueryExtendList(query):
                     queryData.append(query[scoreIdx])
                     result.append(queryData)
     return result
+def insertDataDic(dataDic, language, position, history, soulfood, score):
+    langs = ['-', language]
+    poss = ['-', position]
+    hists = ['-', history]
+    soulfoods = ['-', soulfood]
+    for i in langs:
+        for j in poss:
+            for k in hists:
+                for l in soulfoods:
+                    key = i + j + k + l
+                    dataDic[key].append(int(score))
+    return 
 # query (language, position, history, soulfood, int(score))
-def countDic(dataDic, query):
+def countDic(dataDic, sortInfoDic, query):
     count = 0
-    queryList = getQueryExtendList(query)
-    for queryi in queryList:
-        scoreList = dataDic[queryi[lanIdx]][queryi[posIdx]][queryi[hisIdx]][queryi[soulIdx]]
-        idx = bisect_left(scoreList, queryi[scoreIdx])
-        count += len(scoreList[idx:])
-        # for score in scoreList:
-        #     if int(score) >= int(queryi[scoreIdx]):
-        #         count += 1
+    # queryList = getQueryExtendList(query)
+    queryKey = query[0]
+    score = query[1]
+    if sortInfoDic[queryKey] == False:
+        dataDic[queryKey].sort()
+    idx = bisect_left(dataDic[queryKey], score)
+    count += len(dataDic[queryKey][idx:])
     return count
-def solution(info, query):
-    dataList = []
-    dataDic = {}
 
-    for lang in langKind:
-        dataDic[lang] = {}
-        for pos in posKind:
-            dataDic[lang][pos] = {}
-            for hist in histKind:
-                dataDic[lang][pos][hist] = {}
-                for soulfd in soulfoodKind:
-                    dataDic[lang][pos][hist][soulfd] = []
+def solution(info, query):
+
+    dataDic = defaultdict(list)
+    sortInfoDic = defaultdict(lambda: False)
     for i in info:
         language, position, history, soulfood, score = i.split()
-        dataList.append((language, position, history, soulfood, int(score)))
-        dataDic[language][position][history][soulfood].append(int(score))
+        insertDataDic(dataDic, language, position, history, soulfood, score)
+    # for i in dataDic.keys():
+    #     dataDic[i].sort()
 
-    for lang in langKind:
-        for pos in posKind:
-            for hist in histKind:
-                for soulfd in soulfoodKind:
-                    dataDic[lang][pos][hist][soulfd].sort()
     queryList = []
     for i in query:
         language, delimter1, position, delimter2, history, delimter3, soulfood, score = i.split()
-        queryList.append((language, position, history, soulfood, int(score)))
+        queryList.append((language + position + history + soulfood, int(score)))
 
     answer = []
-    # dataList.sort()
+
     for i in queryList:
-        answer.append(countDic(dataDic, i))
+        answer.append(countDic(dataDic,sortInfoDic, i))
     return answer
 
 print(solution(["java backend junior pizza 150","python frontend senior chicken 210","python frontend senior chicken 150","cpp backend senior pizza 260","java backend junior chicken 80","python backend senior chicken 50"],
