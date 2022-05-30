@@ -1,5 +1,3 @@
-from re import X
-
 
 def solution(brown, yellow):
     xyline = int((brown + 4) / 2)
