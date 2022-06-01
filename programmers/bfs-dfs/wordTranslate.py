@@ -92,3 +92,43 @@ def solution(begin, target, words):
 print(solution("hit","cog", ["hot", "dot", "dog", "lot", "log", "cog"]))	#4
 minCount = 0xFFFFFFFF
 print(solution("hit","cog", ["hot", "dot", "dog", "lot", "log"]))	#0
+
+
+def available(sourceStr, targetStr):
+    diffCount = 0
+    for i in range(len(sourceStr)):
+        if sourceStr[i] != targetStr[i]:
+            diffCount += 1
+    if diffCount > 1:
+        return False
+    return True
+minCount = 0xFFFFFFFF
+def dfs(begin, words, start, visited, target, level):
+    global minCount
+
+    if begin == target:
+        if level < minCount:
+            minCount = level 
+    visited[start] = 1
+    level += 1
+    if available(begin, words[start]) != True:
+        return
+    for i in range(len(visited)):
+        if visited[i] == 0:
+            dfs(words[start], words, i, visited, target, level)
+            visited[i] = 0
+    
+    return 
+
+def solution(begin, target, words):
+    count = 0
+    for i in range(len(words)):
+        visited = [0] * len(words)
+        dfs(begin, words, i, visited, target, 0)
+    if minCount != 0xFFFFFFFF:
+        count = minCount
+    else: 
+        count = 0
+    return count
+
+print(solution("hit","cog", ["hot", "dot", "dog", "lot", "log", "cog"]))	#4
