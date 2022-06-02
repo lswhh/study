@@ -1,6 +1,6 @@
+# https://programmers.co.kr/learn/courses/30/lessons/42627
 import heapq
 INF = 0xFFFFFFFF
-import heapq
 
 def solution(jobs):
     curJobCompleteTime = 0
