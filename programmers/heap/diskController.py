@@ -8,7 +8,7 @@ def solution(jobs):
     resultList = []
     heapq.heapify(jobs)
 
-    while jobs:
+    while len(jobs) > 0:
         startT, runT = heapq.heappop(jobs)
         if (startT >= curJobCompleteTime and len(q) == 0) or (len(q) == 0 and len(jobs) == 0):
             curJobCompleteTime = max(startT, curJobCompleteTime) + runT
@@ -24,7 +24,7 @@ def solution(jobs):
             endT, startT, runT = heapq.heappop(q)
             resultList.append((startT, endT))
             curJobCompleteTime = endT
-            while q:
+            while len(q) > 0:
                 endT, startT, runT = heapq.heappop(q)
                 heapq.heappush(jobs,(startT, runT))
 
@@ -35,7 +35,7 @@ def solution(jobs):
         job = resultList.pop(0)
         startTime = job[0]
         jobTime = job[1]
-        print(startTime, jobTime, jobTime - startTime)
+        # print(startTime, jobTime, jobTime - startTime)
         count += 1 
         totalSum += jobTime - startTime
     if count != 0:
@@ -45,3 +45,5 @@ def solution(jobs):
 
 print(solution([[0, 3], [1, 9], [2, 6]]))
 print(solution([[0, 3], [1, 9], [2, 6], [5,1]]))
+print(solution([[0, 3], [1, 9], [2, 6], [20,1]]))
+print(solution([[0, 3]]))
