@@ -1,7 +1,10 @@
 #include <pthread.h>
 #include <stdio.h>
+#include <unistd.h>
 
-void * sample()
+typedef void * (*threadFunc)(void*);
+
+void * sample(void * aArg)
 {
     printf("sample thread\n");
     sleep(1);
@@ -11,7 +14,8 @@ void * sample()
 int main()
 {
     pthread_t tid;
-    pthread_create(&tid, NULL, &sample, NULL);
+    threadFunc tFunc = &sample;
+    pthread_create(&tid, NULL, tFunc, NULL);
     pthread_join(tid, NULL);
 
     return 0;
