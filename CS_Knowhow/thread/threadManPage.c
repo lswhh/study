@@ -84,6 +84,7 @@ main(int argc, char *argv[])
             break;
 
         default:
+            printf("result: %c", opt);
             fprintf(stderr, "Usage: %s [-s stack-size] arg...\n",
                     argv[0]);
             exit(EXIT_FAILURE);
