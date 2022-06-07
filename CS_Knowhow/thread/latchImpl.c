@@ -1,3 +1,5 @@
+#define __USE_GNU 
+#include <assert.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
@@ -13,9 +15,16 @@
 #define EXCEPTION(a) goto EXCEPTION_END_LABEL; a:
 #define HANDLE_ERROR(en, msg) \
         do { errno = en; perror(msg); } while (0)
+#define THREAD_ID_NULL (0)
+
+typedef enum {
+    lock_false = 0,
+    lock_true = 1,
+} lockBool;
 
 typedef struct latchObj {
     int mode;
+    pthread_t writeTID;
     pthread_mutex_t mutex;
 } latchObj;
 
@@ -39,6 +48,8 @@ int latchInitialize(latchObj * aLatchObj )
 
     result = pthread_mutex_init(&(aLatchObj->mutex), &mutexAttr);
     TEST_RAISE(result != RESULT_SUCCESS, mutex_init_error);
+
+    aLatchObj->writeTID = THREAD_ID_NULL;
 
     return RESULT_SUCCESS;
 
@@ -73,32 +84,211 @@ int latchDestroy(latchObj * aLatchObj )
     return result;
 }
 
-void lockLatch( latchObj * aLatchObj )
+int tryLockRead( latchObj * aLatchObj, lockBool * aOutIsLockSuccess )
 {
     int result = 0;
+    pthread_t threadID = pthread_self();
 
-    result = pthread_mutex_lock(&aLatchObj->mutex);
-    TEST_END( result != RESULT_SUCCESS );
+    result = pthread_mutex_lock( &aLatchObj->mutex );
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_lock_err );
+
+    if(aLatchObj->mode >= 0)
+    {
+        aLatchObj->mode++;
+        *aOutIsLockSuccess = lock_true;
+    }
+    else
+    {
+        if(aLatchObj->writeTID == threadID)
+        {
+            /*
+             * This thread holds X latch
+             * negative mode value represents X latch
+             */
+            aLatchObj->mode--;
+            *aOutIsLockSuccess = lock_true;
+        }
+        else
+        {
+            *aOutIsLockSuccess = lock_false;
+        }
+    }
+
+    result = pthread_mutex_unlock(&aLatchObj->mutex);
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_unlock_err );
 
     return RESULT_SUCCESS;
-    
+
+    EXCEPTION(mutex_lock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_lock");
+    }
+    EXCEPTION(mutex_unlock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_unlock");
+    }
+
     EXCEPTION_END;
-    HANDLE_ERROR(result, "pthread_mutex_lock");
     
     return result;
 }
 
-void unlockLatch( latchObj * aLatchObj )
+int lockRead( latchObj * aLatchObj )
 {
-    int result = 0;
+    int result;
+    lockBool  sSuccess;
+
+    result = tryLockRead(aLatchObj, &sSuccess);
+    TEST_RAISE( result != RESULT_SUCCESS, tryLockRead_err );    
     
-    result = pthread_mutex_unlock(&aLatchObj->mutex);
-    TEST_END( result != RESULT_SUCCESS );
+    if(sSuccess == lock_false)
+    {
+        do
+        {
+            pthread_yield();
+            result = tryLockRead(aLatchObj, &sSuccess);
+            TEST_RAISE( result != RESULT_SUCCESS, tryLockRead_err );    
+        } while(sSuccess == lock_false);
+    }
 
     return RESULT_SUCCESS;
-    
+
+    EXCEPTION(tryLockRead_err)
+    {
+        HANDLE_ERROR(result, "tryLockRead");
+    }
     EXCEPTION_END;
-    HANDLE_ERROR(result, "pthread_mutex_unlock");
+
+    return result;
+}
+int tryLockWrite( latchObj * aLatchObj, lockBool * aOutIsLockSuccess )
+{
+    int result = 0;
+
+    pthread_t threadID = pthread_self();
+
+    result = pthread_mutex_lock( &aLatchObj->mutex );
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_lock_err );
+
+    if(aLatchObj->mode == 0)
+    {
+        aLatchObj->mode = -1;
+        aLatchObj->writeTID = threadID;
+        *aOutIsLockSuccess = lock_true;
+    }
+    else
+    {
+        if(aLatchObj->mode > 0)
+        {
+            *aOutIsLockSuccess = lock_false;
+        }
+        else
+        {
+            if(aLatchObj->writeTID == threadID)
+            {
+                aLatchObj->mode--;
+                *aOutIsLockSuccess = lock_true;
+            }
+            else
+            {
+                *aOutIsLockSuccess = lock_false;
+            }
+        }
+    }
+
+    result = pthread_mutex_unlock(&aLatchObj->mutex);
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_unlock_err );
+
+    return RESULT_SUCCESS;
+
+    EXCEPTION(mutex_lock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_lock");
+    }
+    EXCEPTION(mutex_unlock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_unlock");
+    }
+
+    EXCEPTION_END;
+    
+    return result;
+}
+
+int lockWrite( latchObj * aLatchObj )
+{
+    int result;
+    lockBool  sSuccess;
+
+    result = tryLockWrite(aLatchObj, &sSuccess);
+    TEST_RAISE( result != RESULT_SUCCESS, tryLockWrite_err );    
+    if(sSuccess == lock_false)
+    {
+        do
+        {
+            (void)pthread_yield();
+            result = tryLockWrite(aLatchObj, &sSuccess);
+            TEST_RAISE( result != RESULT_SUCCESS, tryLockWrite_err );    
+        } while(sSuccess == lock_false);
+    }
+    else
+    {
+        /* lock acquire: do nothing */
+    }
+
+    return RESULT_SUCCESS;
+
+    EXCEPTION(tryLockWrite_err)
+    {
+        HANDLE_ERROR(result, "tryLockWrite");
+    }
+
+    EXCEPTION_END;
+
+    return result;
+}
+
+int unlock( latchObj * aLatchObj )
+{
+    int result = 0;
+
+    result = pthread_mutex_lock( &aLatchObj->mutex );
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_lock_err );
+
+    if (aLatchObj->mode > 0) /* for read */
+    {
+        aLatchObj->mode--; /* decrease read latch count */
+    }
+    else /* for write */
+    {
+        assert(aLatchObj->writeTID == pthread_self());
+
+        aLatchObj->mode++; /* Decrease write latch count (reverse) */
+
+        if (aLatchObj->mode == 0)
+        {
+            aLatchObj->writeTID = THREAD_ID_NULL;
+        }
+        else
+        {
+            /* still I'm holding this latch, for recursive write lock */
+        }
+    }
+
+    result = pthread_mutex_unlock(&aLatchObj->mutex);
+    TEST_RAISE( result != RESULT_SUCCESS, mutex_unlock_err );
+
+    return RESULT_SUCCESS;
+
+    EXCEPTION(mutex_lock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_lock");
+    }
+    EXCEPTION(mutex_unlock_err)
+    {
+        HANDLE_ERROR(result, "pthread_mutex_unlock");
+    }
+    EXCEPTION_END;
     
     return result;
 }
