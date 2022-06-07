@@ -14,18 +14,14 @@ void *count(void *arg){
     int i;
     char* name = (char*)arg;
 
-    pthread_mutex_lock(&mutex);
-
-    //======== critical section =============
-    cnt=0;
     for (i = 0; i <10; i++)
     {
-        printf("%s cnt: %d\n", name,cnt);
+        pthread_mutex_lock(&mutex);
         cnt++;
+        pthread_mutex_unlock(&mutex);
+        printf("%s cnt: %d\n", name,cnt);
         usleep(1);
     }
-    //========= critical section ============
-    pthread_mutex_unlock(&mutex);
 }
 
 int main()
