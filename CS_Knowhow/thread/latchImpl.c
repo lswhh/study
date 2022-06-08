@@ -17,16 +17,29 @@
         do { errno = en; perror(msg); } while (0)
 #define THREAD_ID_NULL (0)
 
+typedef struct iduList iduList;
+typedef struct iduList iduListNode;
+
+struct iduList
+{
+    iduList * mPrev;
+    iduList * mNext;
+
+    void * mObj;
+};
+
 typedef enum {
     lock_false = 0,
     lock_true = 1,
 } lockBool;
 
-typedef struct latchObj {
+typedef struct latchObj latchObj;
+
+struct latchObj {
     int mode;
     pthread_t writeTID;
     pthread_mutex_t mutex;
-} latchObj;
+};
 
 typedef struct latchOP {
     int (*initialize)( latchObj* );
@@ -145,7 +158,7 @@ int lockRead( latchObj * aLatchObj )
     {
         do
         {
-            pthread_yield();
+            (void)pthread_yield();
             result = tryLockRead(aLatchObj, &sSuccess);
             TEST_RAISE( result != RESULT_SUCCESS, tryLockRead_err );    
         } while(sSuccess == lock_false);
