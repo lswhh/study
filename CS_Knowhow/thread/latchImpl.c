@@ -14,7 +14,7 @@
 #define TEST_END( a ) { if( a ) {  goto EXCEPTION_END_LABEL; } }
 #define EXCEPTION(a) goto EXCEPTION_END_LABEL; a:
 #define HANDLE_ERROR(en, msg) \
-        do { errno = en; perror(msg); } while (0)
+        do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 #define THREAD_ID_NULL (0)
 
 typedef struct iduList iduList;
@@ -56,7 +56,7 @@ int latchInitialize(latchObj * aLatchObj )
     result = pthread_mutexattr_init(&mutexAttr);
     TEST_RAISE(result != RESULT_SUCCESS, mutexattr_init_error);
 
-    result = pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED);
+    result = pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_PRIVATE);
     TEST_RAISE(result != RESULT_SUCCESS, mutexattr_setpshared_error);
 
     result = pthread_mutex_init(&(aLatchObj->mutex), &mutexAttr);

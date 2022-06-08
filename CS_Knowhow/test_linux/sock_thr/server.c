@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
     sigprocmask(SIG_BLOCK, &s, NULL);
 
     //signal(17, SIG_DFL);
+    //signal(SIGPIPE, signal_handler);
     signal(SIGPIPE, signal_handler);
-
     pthread_create(&tid, NULL, thr_run, NULL);
     pthread_join(tid, NULL);
     
