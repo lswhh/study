@@ -1,0 +1,7 @@
+#define ARRAY_SIZE(x) ( sizeof((x))/sizeof((x)[0]) )
+#define ABS(x) ( ((x)<0)?-(x):(x) ) 
+#define SQUARE(x) ( (x)*(x) ) 
+#define UPCASE(c) ( ((c)>='a'&&(c)<='z')?(c)-('a'-'A'):(c) ) 
+#define LOWCASE(c) ( ((c)>='A'&&(c)<='z')?(c)+('a'-'A'):(c) ) 
+#define MAX(x,y) ( (x)>(y)?(x):(y) ) 
+#define MIN(x,y) ( (x)<(y)?(x):(y) )

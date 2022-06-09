@@ -12,7 +12,16 @@
 
 #define handle_error(msg) \
         do { perror(msg); exit(EXIT_FAILURE); } while (0)
-        
+
+#define MIN(x,y) ( (x)<(y)?(x):(y) )
+#define ENDIAN_CONVERT4(dst, src)                    \
+    do                                               \
+    {                                                \
+        *((char *)(dst) + 3) = *((char *)(src) + 0); \
+        *((char *)(dst) + 2) = *((char *)(src) + 1); \
+        *((char *)(dst) + 1) = *((char *)(src) + 2); \
+        *((char *)(dst) + 0) = *((char *)(src) + 3); \
+    } while (0)
 int main(int argc, char *argv[])
 {
 	int serv_sock, client_sock;
@@ -21,6 +30,7 @@ int main(int argc, char *argv[])
 	int str_len, i;
 	char buf[BUF_SIZE];
     sigset_t s;
+	int len;
 
 	struct epoll_event *ep_events;
 	struct epoll_event event;
@@ -63,7 +73,7 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
-		event_cnt = epoll_wait(epfd, ep_events, EPOLL_SIZE, -1);
+		event_cnt = epoll_wait(epfd, ep_events, EPOLL_SIZE, 10);
 		if ( event_cnt < 0 )
 		{
 			puts("epoll_wait() error");
@@ -80,7 +90,7 @@ int main(int argc, char *argv[])
 				event.data.fd = client_sock;
 				if ( epoll_ctl(epfd, EPOLL_CTL_ADD, client_sock, &event) != 0 )
                 {
-                    shutdown(client_sock, SHUT_RDWR);
+                    // shutdown(client_sock, SHUT_RDWR);
                     close(client_sock);
                 }
                 else
@@ -102,17 +112,20 @@ int main(int argc, char *argv[])
                     //         goto again; // we have to re-read on signal
                     //     }
                     //     return result;
-					str_len = read(ep_events[i].data.fd, buf, BUF_SIZE);
+                    read(ep_events[i].data.fd, &str_len, sizeof(str_len));
+					ENDIAN_CONVERT4(&len, &str_len);
+                    // str_len = ntohl(str_len);
+
+					str_len = read(ep_events[i].data.fd, buf, MIN(len, BUF_SIZE));
 					if( str_len == 0 )    // close request!
 					{
-						epoll_ctl(
-							epfd, EPOLL_CTL_DEL, ep_events[i].data.fd, NULL);
+						epoll_ctl(epfd, EPOLL_CTL_DEL, ep_events[i].data.fd, NULL);
 						close(ep_events[i].data.fd);
 						printf("closed client: %d \n", ep_events[i].data.fd);
 					}
 					else
 					{
-						write(ep_events[i].data.fd, buf, str_len);    // echo!
+						write(ep_events[i].data.fd, buf, str_len + 1);    // echo!
 					}
 	
 			}
@@ -122,3 +135,4 @@ int main(int argc, char *argv[])
 	close(epfd);
 	return 0;
 }
+// https://gist.github.com/Alexey-N-Chernyshov/4634731

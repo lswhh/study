@@ -37,16 +37,21 @@ int main(int argc, char *argv[])
 	
 	while(1) 
 	{
-		fputs("Input message(Q to quit): ", stdout);
-		fgets(message, BUF_SIZE, stdin);
-		
+		// fputs("Input message(Q to quit): ", stdout);
+		// fgets(message, BUF_SIZE, stdin);
+		// usleep(100000);
+		sleep(1);
+		memcpy(message,"testtesttesttest\n", 17);
 		if ( strcmp(message,"q\n") == 0 || strcmp(message,"Q\n") == 0 )
 			break;
-
+        str_len = strlen(message);
+		str_len = htonl(str_len);
+		write(sock, &str_len, sizeof(str_len));
 		write(sock, message, strlen(message));
+		str_len = strlen(message);
 		str_len = read(sock, message, BUF_SIZE - 1);
 		message[str_len] = 0;
-		printf("Message from server: %s", message);
+		printf("Message from server: %s\n", message);
 	}
 	
 	close(sock);
