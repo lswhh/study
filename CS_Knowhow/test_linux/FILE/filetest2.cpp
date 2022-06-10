@@ -22,7 +22,7 @@ int main(void)
         int fd =0;
         long long sDummyBuf=0 ;
        off_t res;
-        printf("pri rr file %d\n",PRI_RR_MAX);
+        // printf("pri rr file %d\n",PRI_RR_MAX);
 printf("sizeof off_t:%d\n", sizeof(off_t));
 
         fd = open("aaa2.txt",O_RDWR|O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP  | S_IROTH | S_IWOTH  );

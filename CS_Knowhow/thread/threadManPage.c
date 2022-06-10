@@ -144,6 +144,7 @@ main(int argc, char *argv[])
         free(res);      /* Free memory allocated by thread */
     }
 
+    
     free(tinfo);
     exit(EXIT_SUCCESS);
 }

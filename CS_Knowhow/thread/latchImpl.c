@@ -17,16 +17,8 @@
         do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 #define THREAD_ID_NULL (0)
 
-typedef struct iduList iduList;
-typedef struct iduList iduListNode;
-
-struct iduList
-{
-    iduList * mPrev;
-    iduList * mNext;
-
-    void * mObj;
-};
+typedef struct kUtList kUtList;
+typedef struct kUtList iduListNode;
 
 typedef enum {
     lock_false = 0,
@@ -114,10 +106,6 @@ int tryLockRead( latchObj * aLatchObj, lockBool * aOutIsLockSuccess )
     {
         if(aLatchObj->writeTID == threadID)
         {
-            /*
-             * This thread holds X latch
-             * negative mode value represents X latch
-             */
             aLatchObj->mode--;
             *aOutIsLockSuccess = lock_true;
         }
@@ -318,11 +306,17 @@ struct thread_info {    /* Used as argument to thread_start() */
     char     *argv_string;      /* From command-line argument */
 };
 
+__thread int tlsData = 0;
+int globalNoLockData = 0;
+latchObj globalLatch;
+int globalData = 0;
+
 static void *
 thread_start(void *arg)
 {
     struct thread_info *tinfo = arg;
     char *uargv, *p;
+    int result = RESULT_SUCCESS;
 
     printf("Thread %d: top of stack near %p; argv_string=%s\n",
             tinfo->thread_num, &p, tinfo->argv_string);
@@ -333,7 +327,39 @@ thread_start(void *arg)
 
     for (p = uargv; *p != '\0'; p++)
         *p = toupper(*p);
+    while (tlsData < (100 * tinfo->thread_num))
+    {
+        pthread_yield();
+        tlsData++;
+    }
+    while (globalNoLockData < 10000)
+    {
+        pthread_yield();
+        globalNoLockData++;
+    }
+    lockRead(&globalLatch);
+    while (globalData < 1000)
+    {
+        printf("thread_num: %d, globalData: %d ", tinfo->thread_num, globalData);
+        unlock(&globalLatch);
 
+        result = lockWrite(&globalLatch);
+        if (result == RESULT_SUCCESS)
+        {
+            if (globalData >= 1000)
+                break;
+            globalData++;
+            unlock(&globalLatch);
+        }
+
+        lockRead(&globalLatch);
+    }
+    unlock(&globalLatch);
+    lockRead(&globalLatch);
+    printf("\nthread_num: %d, globalData: %d\n", tinfo->thread_num, globalData);
+    unlock(&globalLatch);
+    printf("\nthread_num: %d, tlsData: %d\n", tinfo->thread_num, tlsData);
+    printf("\nthread_num: %d, globalNoLockData: %d\n", tinfo->thread_num, globalNoLockData);
     return uargv;
 }
 
@@ -344,29 +370,30 @@ main(int argc, char *argv[])
     int s, tnum, opt, num_threads;
     struct thread_info *tinfo;
     pthread_attr_t attr;
-    int stack_size;
     void *res;
+    int stack_size = 0;
+    char * tmpStr;
 
     printf("main func init address: %p\n", &p);
     printf("text pointer address: %p\n", &"TEXT");
-    /* The "-s" option specifies a stack size for our threads */
+    /* The "-t" option specifies number of threads */
 
     stack_size = -1;
-    while ((opt = getopt(argc, argv, "s:")) != -1) {
+    while ((opt = getopt(argc, argv, "t:s:")) != -1) {
         switch (opt) {
+        case 't':
+            num_threads = strtoul(optarg, NULL, 0);
+            break;
         case 's':
             stack_size = strtoul(optarg, NULL, 0);
             break;
-
         default:
             printf("result: %c", opt);
-            fprintf(stderr, "Usage: %s [-s stack-size] arg...\n",
+            fprintf(stderr, "Usage: %s [-s stack-size] [-t thread_num] arg...\n",
                     argv[0]);
             exit(EXIT_FAILURE);
         }
     }
-
-    num_threads = argc - optind;
 
     /* Initialize thread creation attributes */
 
@@ -385,11 +412,17 @@ main(int argc, char *argv[])
     tinfo = calloc(num_threads, sizeof(struct thread_info));
     if (tinfo == NULL)
         handle_error("calloc");
+    if ( latchInitialize( &globalLatch ) != RESULT_SUCCESS )
+    {
+        handle_error("latchInitialize");
+    }
     /* Create one thread for each command-line argument */
 
     for (tnum = 0; tnum < num_threads; tnum++) {
         tinfo[tnum].thread_num = tnum + 1;
-        tinfo[tnum].argv_string = argv[optind + tnum];
+        tmpStr = calloc(1, sizeof("thread: xxxxxxxxxx"));
+        sprintf(tmpStr, "thread: %d", tnum);
+        tinfo[tnum].argv_string = tmpStr;
 
         /* The pthread_create() call stores the thread ID into
             corresponding element of tinfo[] */
@@ -418,7 +451,10 @@ main(int argc, char *argv[])
                 tinfo[tnum].thread_num, (char *) res);
         free(res);      /* Free memory allocated by thread */
     }
-
+    if ( latchDestroy( &globalLatch ) != RESULT_SUCCESS )
+    {
+        handle_error("latchDestroy");
+    }
     free(tinfo);
     exit(EXIT_SUCCESS);
 }

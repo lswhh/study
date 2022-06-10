@@ -71,23 +71,24 @@ void *thread_main(void *arg)
 {
         long long i;
         long long result=0;
+        long long tArg =(long long)arg;
 
-        if( (int)arg != 4 )
+        if( (int)tArg != 4 )
        {
-        while (!done[(int)arg])
+        while (!done[(int)tArg])
         {
-           printf("str thread: %d, result = %lld\n", (int)arg, result);
+           printf("str thread: %d, result = %lld\n", (int)tArg, result);
            for (i=0 ; i < 10000000 ; i++)
            {
               result++;
            }
-           printf("end thread: %d, result = %lld\n", (int)arg, result);
+           printf("end thread: %d, result = %lld\n", (int)tArg, result);
         }
        }
        else
        {
-           printf("str thread: %d, result = %lld\n", (int)arg, result);
-    printf("end thread: %d, result = %lld\n", (int)arg, result);
+           printf("str thread: %d, result = %lld\n", (int)tArg, result);
+    printf("end thread: %d, result = %lld\n", (int)tArg, result);
        }
         pthread_exit((void *) 0);
 }
