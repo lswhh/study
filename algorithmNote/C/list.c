@@ -389,23 +389,24 @@ int main()
     dNode * sData = NULL;
     int sSize = 0;
 
-    char sStaticData[] = {"안녕하세요", "테스트 입니다 길이를 구해주세요", "delete", "abcdefghijklmn",  NULL}; 
-    char sStaticData2[][2] = {{"안녕하세요", "첫째행"},
+    char * sStaticData[5] = {"안녕하세요", "테스트 입니다 길이를 구해주세요", "delete", "abcdefghijklmn",  NULL}; 
+    char * sStaticData2[3][2] = {{"안녕하세요", "첫째행"},
                               {"테스트 입니다 길이를 구해주세요", "둘째행"}, 
                               {"abcdefghijklmn", "셋째행"}}; 
     int i = 0;
 
     UT_LIST_INIT(&sList);
 
-    for( i = 0; i < sStaticData[i] != NULL; i++ ) 
+    for( i = 0; sStaticData[i] != NULL; i++ ) 
     {
         sSize = offsetof(dNode, mString) + strlen(sStaticData[i]);
         printf("offsetof size: %d\n", sSize);
-        sSize = sizeof(dNode) + strlen(sStaticData[i]) - 1;
-        printf("sizeof size: %d\n", sSize);
-        sData->mStrLen = strlen(sStaticData[i]);
-        sprintf(sData->mString,"%s\n", sStaticData[i]);
+        // sSize = sizeof(dNode) + strlen(sStaticData[i]) - 1;
+        // printf("sizeof size: %d\n", sSize);
+
         sData = malloc(sSize);
+        sData->mStrLen = strlen(sStaticData[i]);
+        sprintf(sData->mString,"%s", sStaticData[i]);
         UT_LIST_INIT_OBJ( &(sData->mNode), sData );
         UT_LIST_ADD_LAST(&sList, &(sData->mNode));
     }
@@ -416,22 +417,29 @@ int main()
         printf("len:%d, string: %s \n", sData->mStrLen, sData->mString );
     }
 
+    UT_LIST_ITERATE_BACK(&sList, sNode)
+    {
+        sData = (dNode*)sNode->mObj;
+        printf("len:%d, string: %s \n", sData->mStrLen, sData->mString );
+    }
     UT_LIST_ITERATE_SAFE( &sList, sNode, sDummy )
     {
         sData = (dNode*)sNode->mObj;
+        //if (strncmp(sData->mString, "delete", sData->mStrLen) == 0)
         if (strcmp(sData->mString, "delete") == 0)
         {
+            printf("remove delete node \n");
             UT_LIST_REMOVE( sNode );
-            free( sNode->mObj );
+            free( sData );
         }
     }
-
+    usleep(500000);
     UT_LIST_ITERATE_SAFE( &sList, sNode, sDummy )
     {
         sData = (dNode*)sNode->mObj;
         printf("len:%d, string: %s \n", sData->mStrLen, sData->mString);
         UT_LIST_REMOVE( sNode );
-        free( sNode->mObj );
+        free( sData );
     }
 
     if ( UT_LIST_IS_EMPTY(&sList) == UT_TRUE )

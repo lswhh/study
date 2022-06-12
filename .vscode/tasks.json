@@ -7,6 +7,7 @@
             "command": "C:\\MinGW\\bin\\gcc.exe",
             "args": [
                 "-fdiagnostics-color=always",
+                "-fpermissive",
                 "-g",
                 "-pthread",
                 "${file}",
@@ -28,6 +29,7 @@
             "command": "/usr/bin/gcc",
             "args": [
                 "-fdiagnostics-color=always",
+                "-fpermissive",
                 "-g",
                 "-pthread",
                 "${file}",

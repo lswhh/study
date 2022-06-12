@@ -17,9 +17,6 @@
         do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 #define THREAD_ID_NULL (0)
 
-typedef struct kUtList kUtList;
-typedef struct kUtList iduListNode;
-
 typedef enum {
     lock_false = 0,
     lock_true = 1,

@@ -1,0 +1,24 @@
+{
+    "files.associations": {
+        "climits": "cpp",
+        "functional": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "*.tcc": "c",
+        "istream": "c",
+        "streambuf": "c",
+        "bitset": "c",
+        "unordered_map": "c",
+        "unordered_set": "c",
+        "vector": "c",
+        "memory": "c",
+        "optional": "c",
+        "system_error": "c",
+        "thread": "c",
+        "typeindex": "c",
+        "variant": "c",
+        "stdlib.h": "c",
+        "chrono": "c"
+    }
+}
