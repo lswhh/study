@@ -32,6 +32,24 @@
 int main()
 {
     int sData = 1;
+    int data2 = 2;
+    unsigned long long test = 0;
+    int i = 0;
+    memcpy(&test, &data2, sizeof(int));
+    memcpy((char*)&test + 4, &sData, sizeof(int));
+    printf("%lu\n", test);
+    for ( i = 0 ; i < 8 ; i++)
+    {
+        printf("%x ", ((char*)&test)[i]);
+    }
+    printf("\n");
+    memcpy(&test, &sData, sizeof(int));
+    memcpy((char*)&test + 4, &data2, sizeof(int));
+    printf("%lu\n", test);
+    for ( i = 0 ; i < 8 ; i++)
+    {
+        printf("%x ", ((char*)(&test))[i]);
+    }
 
     if ( ((char*)(&sData))[0] == 1)
     {
