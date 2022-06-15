@@ -33,6 +33,7 @@ int main()
 {
     int sData = 1;
     int data2 = 2;
+    int data3= 3; //0x01000000;
     unsigned long long test = 0;
     int i = 0;
     memcpy(&test, &data2, sizeof(int));
@@ -50,14 +51,42 @@ int main()
     {
         printf("%x ", ((char*)(&test))[i]);
     }
+    printf("\n");
+    memcpy(&test, &sData, sizeof(int));
+    memcpy((char*)&test + 4, &data3, sizeof(int));
+    printf("%lu\n", test);
+    unsigned long long A = 0;
+    unsigned long long B = 0;
+    int tmp = 0;
+    long ltest = 0;
+    printf("sizeof(tmp):%d, sizeof(ltest):%d\n",sizeof(tmp), sizeof(ltest) );
+    tmp = 1;
+    memcpy(&A, &tmp, 4);
+    tmp = 3;
+    memcpy((char*)&A + 4, &tmp, 4);
+    tmp = 2;
+    memcpy(&B, &tmp, 4);
+    tmp = 3;
+    memcpy((char*)&B + 4, &tmp, 4);
 
+    if ( A > B )
+        printf("A %lu is greater than B %lu \n", A, B);
+    else if ( A == B )
+        printf("A %lu is equal B %lu \n", A, B);
+    else
+        printf("B %lu is greater than A %lu \n", B, A);
+    
+    for ( i = 0 ; i < 8 ; i++)
+    {
+        printf("%x ", ((char*)(&test))[i]);
+    }
     if ( ((char*)(&sData))[0] == 1)
     {
-        printf("little endian");
+        printf("little endian \n");
     }
     else
     {
-        printf("big endian");
+        printf("big endian \n");
     }
 
     return 0;
