@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #define BIN_SEARCH_NOT_FOUND (INT_MAX)
-#define TOY_ID_NULL (INT_MAX)
+
 // 춘식이가 가진 장난감을 나타내는 구조체입니다.
 struct toy {
     int id;
@@ -17,8 +17,7 @@ struct toy {
     // 자유롭게 변수를 추가하실 수 있습니다.
 };
 struct priorityIndex {
-    int likes;
-    int id;
+    unsigned long long priority;
     int toyIdx;
 };
 struct idIndex {
@@ -30,6 +29,7 @@ struct box {
     // 자유롭게 변수를 추가하실 수 있습니다.
     struct toy * toys;
     struct priorityIndex * priorityIndices;
+    struct idIndex * idIndices;
     int count;
     int capacity;
 };
@@ -40,43 +40,24 @@ void put(struct box *box, int id, int likes);
 int pop(struct box *box);
 int del(struct box *box, int id);
 void clear(struct box *box);
-
-int priorityCompare(struct priorityIndex * aLhs, struct priorityIndex * aRhs)
-{
-    if (aLhs->likes < aRhs->likes)
-    {
-        return -1;
-    }
-    else if ( aLhs->likes > aRhs->likes )
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-int binarySearchPri(struct priorityIndex * array, int arraySize, struct priorityIndex key)
+int binarySearchPri(struct priorityIndex * array, int arraySize, int key)
 {
     int low = 0;
     int high = 0;
     int mid = 0;
     int result = BIN_SEARCH_NOT_FOUND;
-    int compareResult = 0;
-
+    
     low = 0;
     high = arraySize - 1;
     while ( low <= high ) 
     {
         mid = ( low + high ) / 2;
-        compareResult = priorityCompare(&array[mid], &key);
-        if ( compareResult < 0 ) 
+        if ( array[mid].priority == key ) 
         {
             result = mid;
             break;
         }
-        if ( compareResult > 0 )
+        if ( array[mid].priority < key )
         {
             low = mid + 1;
         }
@@ -88,27 +69,24 @@ int binarySearchPri(struct priorityIndex * array, int arraySize, struct priority
 
     return result;
 }
-
-int bisectLeftPri(struct priorityIndex * array, int arraySize, struct priorityIndex key)
+int bisectLeftPri(struct priorityIndex * array, int arraySize, unsigned long long key)
 {
     int low = 0;
     int high = 0;
     int mid = 0;
     int result = BIN_SEARCH_NOT_FOUND;
-    int compareResult = 0;
-
+    
     low = 0;
     high = arraySize - 1;
     while ( low <= high ) 
     {
         mid = ( low + high ) / 2;
-        compareResult = priorityCompare(&array[mid], &key);
-        if ( compareResult == 0 )
+        if ( array[mid].priority == key ) 
         {
             result = mid;
             break;
         }
-        else if ( compareResult < 0 )
+        if ( array[mid].priority < key )
         {
             low = mid + 1;
         }
@@ -123,20 +101,76 @@ int bisectLeftPri(struct priorityIndex * array, int arraySize, struct priorityIn
     }
     return result;
 }
+int binarySearchId(struct idIndex * array, int arraySize, int key)
+{
+    int low = 0;
+    int high = 0;
+    int mid = 0;
+    int result = BIN_SEARCH_NOT_FOUND;
+    
+    low = 0;
+    high = arraySize - 1;
+    while ( low <= high ) 
+    {
+        mid = ( low + high ) / 2;
+        if ( array[mid].id == key ) 
+        {
+            result = mid;
+            break;
+        }
+        if ( array[mid].id < key )
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
 
+    return result;
+}
+int bisectLeftId(struct idIndex * array, int arraySize, int key)
+{
+    int low = 0;
+    int high = 0;
+    int mid = 0;
+    int result = BIN_SEARCH_NOT_FOUND;
+    
+    low = 0;
+    high = arraySize - 1;
+    while ( low <= high ) 
+    {
+        mid = ( low + high ) / 2;
+        if ( array[mid].id == key ) 
+        {
+            result = mid;
+            break;
+        }
+        if ( array[mid].id < key )
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+    if ( result == BIN_SEARCH_NOT_FOUND )
+    {
+        result = mid;
+    }
+    return result;
+}
 struct box *create(int capacity)
 {
     // 최대 `size`개의 장난감을 담을 수 있는 `box`를 생성하여 리턴합니다.
     //     - 이 함수는 항상 제일 먼저 호출됩니다.
     struct box * box = NULL;
-    int i;
     box = calloc(sizeof(struct box), 1);
     box->toys = calloc(sizeof(struct toy), capacity);
-    for ( i = 0; i < capacity; i++ )
-    {
-        box->toys[i].id = TOY_ID_NULL;
-    }
     box->priorityIndices = calloc(sizeof(struct priorityIndex), capacity);
+    box->idIndices = calloc(sizeof(struct idIndex), capacity);
     box->count = 0;
     box->capacity = capacity;
 
@@ -151,13 +185,9 @@ void destroy(struct box *box)
     box->count = 0;
     box->capacity = 0;
     free(box->toys);
+    free(box->idIndices);
     free(box->priorityIndices);
     free(box);
-}
-
-int hash(struct box *box, int aKey)
-{
-    return aKey % box->capacity;
 }
 
 void put(struct box *box, int id, int likes)
@@ -168,7 +198,7 @@ void put(struct box *box, int id, int likes)
     //  - 동일한 `likes`를 가진 장난감이 존재한다면 더 높은 `id`를 가진 `toy`가 먼저 반환됩니다.
     //     - `box`에 공간이 없다면 새로운 장난감을 추가하지 않습니다.
     //  - 수행 시간은 O(logN) 이하의 시간 복잡도를 가져야 합니다.
-    struct priorityIndex priority;
+    unsigned long long priority;
     int priIndex = 0;
     int idIndex = 0;
     if ( box->capacity <= box->count )
@@ -176,26 +206,41 @@ void put(struct box *box, int id, int likes)
         return;
     }
 
-    priority.id = id;
-    priority.likes = likes;
-
+    memcpy((void*)&priority, (const void*)&likes, sizeof(int));
+    memcpy((char*)&priority + 4, (const void*)&id, sizeof(int));
     priIndex = bisectLeftPri(box->priorityIndices, box->count, priority);
-     
     if ( box->count - priIndex > 0 )
     {
         memcpy(&(box->priorityIndices[priIndex + 1]), &(box->priorityIndices[priIndex]), sizeof(struct priorityIndex) * (box->count - priIndex));
     }
+    box->priorityIndices[priIndex].priority = priority;
+    box->priorityIndices[priIndex].toyIdx = box->count;
 
-    idIndex = hash(box, id);
-    box->priorityIndices[priIndex].id = id;
-    box->priorityIndices[priIndex].toyIdx = idIndex;
+    idIndex = bisectLeftId(box->idIndices, box->count, id);
+    if ( box->count - idIndex > 0 )
+    {
+        memcpy(&(box->idIndices[idIndex + 1]), &(box->idIndices[idIndex]), sizeof(struct idIndex) * (box->count - idIndex));
+    }
+    box->idIndices[idIndex].id = id;
+    box->idIndices[idIndex].toyIdx = box->count;
 
-    box->toys[idIndex].id = id;
-    box->toys[idIndex].likes = likes;
-    box->toys[idIndex].priorityIdx = priIndex;
+    box->toys[box->count].id = id;
+    box->toys[box->count].likes = likes;
+    box->toys[box->count].idIdx = idIndex;
+    box->toys[box->count].priorityIdx = priIndex;
     box->count++;
 }
-
+void delIdIdx(struct box * box, int idIdx)
+{
+    int afterCount;
+    afterCount = box->count - 1 - idIdx;
+    if ( afterCount > 0 )
+    {
+        memcpy(&box->idIndices[idIdx], &box->idIndices[idIdx + 1], afterCount); 
+    }
+    box->idIndices[idIdx].id = 0;
+    box->idIndices[idIdx].toyIdx = 0;
+}
 void delPriIdx(struct box * box, int priIdx)
 {
     int afterCount;
@@ -204,16 +249,22 @@ void delPriIdx(struct box * box, int priIdx)
     {
         memcpy(&box->priorityIndices[priIdx], &box->priorityIndices[priIdx + 1], afterCount); 
     }
-    box->priorityIndices[priIdx].likes = 0;
-    box->priorityIndices[priIdx].id = TOY_ID_NULL;
+    box->priorityIndices[priIdx].priority = 0;
     box->priorityIndices[priIdx].toyIdx = 0;
 }
-
-void delToy(struct box * box, int toyIdx)
+void delToyIdx(struct box * box, int toyIdx)
 {
-    box->toys[toyIdx].id = TOY_ID_NULL;
+    int afterCount = box->count - 1 - toyIdx;
+    
+    if ( afterCount > 0 )
+    {
+        memcpy(&box->idIndices[toyIdx],&box->idIndices[toyIdx + 1], afterCount); 
+    }
+    box->toys[box->count-1].id = 0;
+    box->toys[box->count-1].likes = 0;
+    box->toys[box->count-1].priorityIdx = 0;
+    box->toys[box->count-1].idIdx = 0;
 }
-
 int pop(struct box *box)
 {
     // 장난감 상자에서 춘식이가 가장 좋아하는 장난감의 id를 반환합니다.
@@ -233,8 +284,9 @@ int pop(struct box *box)
     index = box->priorityIndices[box->count -1].toyIdx;
     id = box->toys[index].id;
 
+    delIdIdx(box, box->toys[box->count -1].idIdx);
     delPriIdx(box, box->toys[box->count -1].priorityIdx);
-    delToy(box, index);
+    delToyIdx(box, index);
     box->count--;
 
     return id;
@@ -254,18 +306,19 @@ int del(struct box *box, int id)
         return -1;
     }
 
-    index = hash(box, id);
-    if ( box->toys[index].id != TOY_ID_NULL )
+    index = binarySearchId(box->idIndices, box->count, id);
+    if ( index != BIN_SEARCH_NOT_FOUND )
     {
-        box->toys[index].priorityIdx;
         likes = box->toys[index].likes;
-        delPriIdx(box, box->toys[index].priorityIdx);
-        delToy(box, index);
+
+        delIdIdx(box, box->toys[box->count -1].idIdx);
+        delPriIdx(box, box->toys[box->count -1].priorityIdx);
+        delToyIdx(box, index);
         box->count--;
     }
     else
     {
-        likes = -1;
+        return -1;
     }
     return likes;
 
@@ -277,6 +330,7 @@ void clear(struct box *box)
     //     - `box`는 여전히 사용가능해야합니다.
     memset(box->priorityIndices, 0, box->capacity * sizeof(struct priorityIndex));
     memset(box->toys, 0, box->capacity * sizeof(struct toy));
+    memset(box->idIndices, 0, box->capacity * sizeof(struct idIndex));
     box->count = 0;
 }
 
