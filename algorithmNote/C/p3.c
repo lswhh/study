@@ -136,7 +136,7 @@ void buyer_main(struct buyer *buyer)
     free(buyer->toy);
     free(buyer);    
 }
-
+__thread buyer_tid;
 void add_new_buyer(struct auction *auction, struct toy *toy, int n)
 {
     // `pthread_create`함수를 이용해 새로운 `buyer`를 새로운 쓰레드로 만들어 `auction`의 `buyers`에 추가합니다.
@@ -152,13 +152,11 @@ void add_new_buyer(struct auction *auction, struct toy *toy, int n)
     buyer->toy = toy;
     buyer->auction = auction;
     
-    s = pthread_create( auction->buyers[auction->buyer_count], NULL,
+    s = pthread_create( &buyer_tid, NULL,
                         &thread_start, (void*)buyer);
-                    
     if (s != 0)
     {
         handle_error_en(s, "pthread_create");
     }
-
-    
+    auction->buyers[auction->buyer_count]
 }
